@@ -101,8 +101,8 @@ int main(void)
 
   /* Window Consists of Box and Panel;
     Adjust size of window to accomodate */
-  const int boxWidth = 1000;
-  const int boxHeight = 1000;
+  const int boxWidth = 800;
+  const int boxHeight = 800;
 
   const int boxGap = 5;
 
@@ -123,7 +123,7 @@ int main(void)
   Camera2D camera = { 0 };
   camera.zoom = 1.0f;
   
-  SetTargetFPS(60);               // Set our game to run at 60 frames-per-second
+  SetTargetFPS(100);               // Set our game to run at 60 frames-per-second
   //--------------------------------------------------------------------------------------
 
   bool drawTempBall=false;
