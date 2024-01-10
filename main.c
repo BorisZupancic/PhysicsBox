@@ -1,5 +1,5 @@
 /*
-Ballz
+PhysicsBox
 */
 
 #include "raylib.h"
@@ -11,8 +11,61 @@ Ballz
 #define RAYGUI_IMPLEMENTATION
 #include "raygui.h"
 
-// Structures + Functions
+#define QUEUE_EMPTY
 
+// Structures + Functions ///////////////////////////////////////
+
+// Stuff for mouse tracking ----------------------------
+typedef struct Queue { // to store positions of mouse
+  int front, back;     // front < back
+  int num_entries, size;
+  Vector2 *values;
+} Queue;
+
+bool queue_empty(Queue *Q) { return (Q->num_entries == 0); }
+bool queue_full(Queue *Q) { return (Q->num_entries == Q->size); }
+
+void init_queue(Queue *Q, int max_size) {
+  Q->front = 0;
+  Q->back = 0;
+  Q->num_entries = 0;
+  Q->size = max_size;
+  Q->values = malloc(sizeof(Vector2) * max_size);
+}
+void destroy_queue(Queue *Q) { free(Q->values); }
+
+void dequeue(Queue *Q) {
+  // Check that Queue isn't empty
+  if (!queue_empty(Q)) {
+    Vector2 result = Q->values[Q->front];
+    Q->front = ++(Q->front) % 10;
+    Q->num_entries--;
+  } else {
+    return QUEUE_EMPTY;
+  }
+}
+void enqueue(Queue *Q, Vector2 v) {
+  if (!queue_full(Q)) {
+    if (!queue_empty(Q)) {
+      Q->back++;
+    }
+    if (Q->back >= Q->size) {
+      Q->back = Q->back % Q->size;
+    }
+
+    Q->values[Q->back] = v;
+    Q->num_entries++;
+  }
+}
+
+void printQueue(Queue Q) {
+  printf("front: %d, back: %d\n", Q.front, Q.back);
+  for (int i = 0; i < Q.size; i++) {
+    printf("%d: (%f,%f)\n", i, Q.values[i].x, Q.values[i].y);
+  }
+}
+
+// Stuff for balls ----------------------------
 typedef struct ball {
   Vector2 q; // position
   Vector2 v; // velocity
@@ -85,6 +138,29 @@ void calculateGravity(ball *balls, int num_balls, Vector2 *g) {
   }
 }
 
+void recenter(ball *balls, int num_balls, Vector2 focus) {
+  float netMass = 0.0;
+  for (int i = 0; i < num_balls; i++) {
+    netMass += balls[i].m;
+  }
+
+  Vector2 centerVelocity = Vector2Zero();
+  Vector2 centerMass = Vector2Zero();
+  for (int i = 0; i < num_balls; i++) {
+    centerMass =
+        Vector2Add(centerMass, Vector2Scale(balls[i].q, balls[i].m / netMass));
+    centerVelocity = Vector2Add(centerVelocity,
+                                Vector2Scale(balls[i].v, balls[i].m / netMass));
+  }
+
+  Vector2 qCorrection;
+  qCorrection = Vector2Subtract(centerMass, focus);
+  for (int i = 0; i < num_balls; i++) {
+    balls[i].q = Vector2Subtract(balls[i].q, qCorrection);
+    balls[i].v = Vector2Subtract(balls[i].v, centerVelocity);
+  }
+}
+
 typedef struct RectangleV2 {
   float left, right, bottom, top;
 } RectangleV2;
@@ -105,13 +181,20 @@ Rectangle ConvertRect_2V1(RectangleV2 rect) {
   return (Rectangle){x, y, width, height};
 }
 
-bool MouseInside(RectangleV2 box) {
-  Vector2 q = GetMousePosition();
+bool checkInside(Vector2 q, RectangleV2 box) {
   if (box.left < q.x && q.x < box.right && box.bottom < q.y && q.y < box.top) {
     return true;
   }
   return false;
 }
+
+bool MouseInside(RectangleV2 box) {
+  // Vector2 q = GetMousePosition();
+  return checkInside(GetMousePosition(), box);
+}
+
+// Ball Collision stuff ---------
+
 /*
 void DrawRectangleV2(RectangleV2 rect){
   DrawLineV(Vector2(rect.left)
@@ -157,6 +240,8 @@ int main(void) {
       0}; // temporary ball object to store data for generating a ball
   float tempGenTime =
       0.0; // time passed while generating ball (to draw growing radius)
+  Queue mouse;
+  init_queue(&mouse, 10);
 
   ball balls[1000]; // array of balls of length 1000
 
@@ -171,6 +256,7 @@ int main(void) {
   float g = 0.0;  // gravity
   int selfGravityON = 0;
   Vector2 self_g[1000];
+  Vector2 a[1000]; // acceleration
 
   float drawTime = 0;
   float dynamicsTime = 0;
@@ -190,6 +276,7 @@ int main(void) {
 
     float dt = timeScale * GetFrameTime();
     float fps = GetFPS();
+    Vector2 g_vec = Vector2Scale((Vector2){0, 1}, g);
 
     // Box for Collision Detection
     RectangleV2 box = ConvertRect(
@@ -197,46 +284,51 @@ int main(void) {
                     boxWidth * meters_per_pixel, boxHeight * meters_per_pixel});
 
     // Generate a temporary ball if mouse is pressed
-    Vector2 mouse_start;
-    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && MouseInside(visualBox)) {
-      mouse_start = Vector2Scale(GetMousePosition(), meters_per_pixel);
-    }
+
+    /*if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && MouseInside(visualBox))
+    { mouse_start = Vector2Scale(GetMousePosition(), meters_per_pixel);
+      mouse_startTime = GetTime();
+    }*/
 
     if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && MouseInside(visualBox)) {
       // get color first
       if (!drawTempBall) {
         tempBall.color = (Color){rand() % 256, rand() % 256, rand() % 256, 200};
+        init_queue(&mouse, 10);
       }
-      drawTempBall = true; // now we can draw the ball
-      tempGenTime = tempGenTime + dt;
 
       Vector2 q = Vector2Scale(GetMousePosition(), meters_per_pixel);
+
+      if (queue_full(&mouse)) {
+        dequeue(&mouse);
+      }
+      enqueue(&mouse, q);
+      // printQueue(mouse);
+
+      drawTempBall = true; // now we can draw the ball
+      // tempGenTime = tempGenTime + dt;
+
       tempBall.q = q;
       tempBall.r = (r + 10 * tempGenTime) * meters_per_pixel;
+      tempBall.m = density * pow(tempBall.r, 2);
+      // tempBall.v = Vector2Zero();
+
+      float dT = dt * mouse.num_entries;
+      tempBall.v = Vector2Scale(
+          Vector2Subtract(mouse.values[mouse.back], mouse.values[mouse.front]),
+          0.5 / dT);
     }
 
     // Save temporary ball if mouse is released
     if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && MouseInside(visualBox)) {
-      // Generate Velocity randomly
-      float vx, vy;
-      /*
-      vx = rand() % (int)(box.right-box.left);
-      vy = rand() % (int)(box.top-box.bottom);
-      vx = 0.25 * pow(-1,vx) * vx; //make positive or negative
-      vy = 0.25 * pow(-1,vy) * vy;
-      */
-
-      Vector2 mouse_end = Vector2Scale(GetMousePosition(), meters_per_pixel);
-
-      balls[num_balls] = (ball){
-          (Vector2)tempBall.q, (Vector2)Vector2Subtract(mouse_end, mouse_start),
-          density * tempBall.r, tempBall.r, tempBall.color};
-
+      balls[num_balls] = tempBall;
       num_balls++;
 
       // Reset tempBall (make sure not being drawn)
       drawTempBall = false;
       tempGenTime = 0.0;
+
+      destroy_queue(&mouse); // free memory
     }
 
     float dynamics_startTime = GetTime();
@@ -251,18 +343,20 @@ int main(void) {
     }
 
     for (int i = 0; i < num_balls; i++) {
+      a[i] = Vector2Add(self_g[i], g_vec);
       // Account for "Earth" Gravity
-      balls[i].v.y = balls[i].v.y + g * dt * 0.5;
       // Account for Self Gravity
-      balls[i].v = Vector2Add(balls[i].v, Vector2Scale(self_g[i], dt * 0.5));
+    }
+    for (int i = 0; i < num_balls; i++) {
+      balls[i].v = Vector2Add(balls[i].v, Vector2Scale(a[i], dt * 0.5));
     }
 
     // DRIFT (position)
 
-    // Collision detection (with other balls)
+    // Collision detection (between balls)
     // Find which pairs of balls will collide first
     Vector2 futureX[num_balls]; // temporary storage of future positions of
-                                // balls
+    // balls
     for (int i = 0; i < num_balls; i++) {
       futureX[i] = Vector2Add(balls[i].q, Vector2Scale(balls[i].v, dt));
     }
@@ -312,6 +406,16 @@ int main(void) {
           NormalCollision(&balls[i], &balls[which_j]);
         }
       }
+
+      for (int i = 0; i < num_balls; i++) {
+        // do collision detection/response with temporary ball:
+        if (drawTempBall && (Vector2DistanceSqr(futureX[i], tempBall.q) <
+                             pow(balls[i].r + tempBall.r, 2))) {
+          printf("Here: i=%d \n", i);
+          // balls[i].v = Vector2Scale(balls[i].v, -1);
+          NormalCollision(&balls[i], &tempBall);
+        }
+      }
     }
 
     // Collision detection with Walls
@@ -355,11 +459,14 @@ int main(void) {
     }
 
     for (int i = 0; i < num_balls; i++) {
+      a[i] = Vector2Add(self_g[i], g_vec);
       // Account for "Earth" Gravity
-      balls[i].v.y = balls[i].v.y + g * dt * 0.5;
       // Account for Self Gravity
-      balls[i].v = Vector2Add(balls[i].v, Vector2Scale(self_g[i], dt * 0.5));
     }
+    for (int i = 0; i < num_balls; i++) {
+      balls[i].v = Vector2Add(balls[i].v, Vector2Scale(a[i], dt * 0.5));
+    }
+
     float dynamics_endTime = GetTime();
     dynamicsTime = dynamics_endTime - dynamics_startTime;
 
@@ -403,10 +510,35 @@ int main(void) {
                         kineticEnergy(balls, num_balls) +
                             potentialEnergy(balls, num_balls, box.top, g)),
              visualBox.right + boxGap + 10, 10, 20, BLACK);
-    DrawText(TextFormat("%s(%3.3f,%3.3f)", "Total Momentum (Vx,Vy): ",
+    /*DrawText(TextFormat("%s(%3.3f,%3.3f)", "Total Momentum (Vx,Vy): ",
                         fabs(momentum(balls, num_balls).x),
                         fabs(momentum(balls, num_balls).y)),
-             visualBox.right + boxGap + 10, 30, 20, BLACK);
+             visualBox.right + boxGap + 10, 30, 20, BLACK);*/
+
+    // Output center of mass acceleration
+    Vector2 centerAccel = Vector2Zero();
+    Vector2 centerMass = Vector2Zero();
+    float netMass = 0.0;
+    for (int i = 0; i < num_balls; i++) {
+      netMass += balls[i].m;
+    }
+    for (int i = 0; i < num_balls; i++) {
+      centerAccel =
+          Vector2Add(centerAccel, Vector2Scale(a[i], balls[i].m / netMass));
+      centerMass = Vector2Add(centerMass,
+                              Vector2Scale(balls[i].q, balls[i].m / netMass));
+    }
+    DrawText(TextFormat("%s(%3.5f,%3.5f)",
+                        "C.M. Accel. (Ax,Ay): ", centerAccel.x, centerAccel.y),
+             visualBox.right + boxGap + 10, 30, 20, RED);
+    DrawLine(centerMass.x / meters_per_pixel - 8,
+             centerMass.y / meters_per_pixel,
+             centerMass.x / meters_per_pixel + 8,
+             centerMass.y / meters_per_pixel, RED);
+    DrawLine(centerMass.x / meters_per_pixel,
+             centerMass.y / meters_per_pixel - 8,
+             centerMass.x / meters_per_pixel,
+             centerMass.y / meters_per_pixel + 8, RED);
 
     GuiGroupBox(
         (Rectangle){panel.left + 20, 30 + guiGapVert, panelWidth - 40, 60},
@@ -435,7 +567,7 @@ int main(void) {
     GuiSlider((Rectangle){panel.left + 50, 30 + 4 * guiGapVert + 15,
                           panelWidth - 100, 30},
               NULL, TextFormat("%2.2f", meters_per_pixel), &meters_per_pixel,
-              0.0, 0.1);
+              0.01, 1.0);
 
     GuiGroupBox(
         (Rectangle){panel.left + 20, 30 + 5 * guiGapVert, panelWidth - 40, 60},
@@ -464,6 +596,14 @@ int main(void) {
                   "CLEAR BALLS")) {
       num_balls = 0;
     }
+    GuiSetState(STATE_NORMAL);
+    if (GuiButton((Rectangle){panel.left + panelWidth / 4,
+                              panel.top - 1.5 * guiGapVert, panelWidth / 2, 30},
+                  "CENTER OF MASS FRAME")) {
+      recenter(
+          balls, num_balls,
+          (Vector2){(box.right - box.left) / 2, (box.top - box.bottom) / 2});
+    }
 
     // Box
     if (drawTempBall) {
@@ -472,9 +612,11 @@ int main(void) {
                  tempBall.color);
     }
     for (int i = 0; i < num_balls; i++) {
-      DrawCircle(balls[i].q.x / meters_per_pixel,
-                 balls[i].q.y / meters_per_pixel, balls[i].r / meters_per_pixel,
-                 balls[i].color);
+      if (checkInside(balls[i].q, box)) {
+        DrawCircle(balls[i].q.x / meters_per_pixel,
+                   balls[i].q.y / meters_per_pixel,
+                   balls[i].r / meters_per_pixel, balls[i].color);
+      }
     }
 
     DrawFPS(10, 10);
