@@ -244,6 +244,8 @@ int main(void) {
   init_queue(&mouse, 10);
 
   ball balls[1000]; // array of balls of length 1000
+  Vector2 self_g[1000];
+  Vector2 a[1000]; // acceleration
 
   float density = 1.0;
   int num_balls = 0; // counter for balls
@@ -253,10 +255,13 @@ int main(void) {
   float timeScale = 1.0;
 
   float r = 25.0; // minimum ball radius
-  float g = 0.0;  // gravity
+  float r_add = 0.0;
+
+  int length_order = 0;
+
+  float g = 0.0; // gravity
+
   int selfGravityON = 0;
-  Vector2 self_g[1000];
-  Vector2 a[1000]; // acceleration
 
   float drawTime = 0;
   float dynamicsTime = 0;
@@ -285,17 +290,14 @@ int main(void) {
 
     // Generate a temporary ball if mouse is pressed
 
-    /*if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && MouseInside(visualBox))
-    { mouse_start = Vector2Scale(GetMousePosition(), meters_per_pixel);
-      mouse_startTime = GetTime();
-    }*/
-
     if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && MouseInside(visualBox)) {
       // get color first
       if (!drawTempBall) {
         tempBall.color = (Color){rand() % 256, rand() % 256, rand() % 256, 200};
         init_queue(&mouse, 10);
       }
+
+      r_add = r_add + 2.0 * GetMouseWheelMove();
 
       Vector2 q = Vector2Scale(GetMousePosition(), meters_per_pixel);
 
@@ -309,7 +311,7 @@ int main(void) {
       // tempGenTime = tempGenTime + dt;
 
       tempBall.q = q;
-      tempBall.r = (r + 10 * tempGenTime) * meters_per_pixel;
+      tempBall.r = (r + 10 * tempGenTime + r_add) * meters_per_pixel;
       tempBall.m = density * pow(tempBall.r, 2);
       // tempBall.v = Vector2Zero();
 
@@ -327,6 +329,7 @@ int main(void) {
       // Reset tempBall (make sure not being drawn)
       drawTempBall = false;
       tempGenTime = 0.0;
+      r_add = 0.0;
 
       destroy_queue(&mouse); // free memory
     }
@@ -478,7 +481,13 @@ int main(void) {
     ClearBackground(RAYWHITE);
 
     // Draw Grid
+    // int length_per_pixel = (int)(10 * meters_per_pixel) % 10;
     int gridSpace = (int){1 / meters_per_pixel};
+    /*
+    int length_order_of_magnitude = (int)log(meters_per_pixel);
+    printf("gridSpace = %d\n", gridSpace);
+    gridSpace = (int)1 / pow(10, length_order_of_magnitude);
+    */
     for (int i = 0; i <= (int)boxWidth * meters_per_pixel / 2; i++) {
       DrawLine(i * gridSpace + visualBox.left + boxWidth / 2, visualBox.bottom,
                i * gridSpace + visualBox.left + boxWidth / 2, visualBox.top,
