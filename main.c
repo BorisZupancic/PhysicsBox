@@ -426,20 +426,20 @@ int main(void) {
       for (int i = 0; i < num_balls; i++) {
         // Right and Left Walls: reverse x-velocity and adjust position
         if ((futureX[i].x + balls[i].r) > box.right) {
-          balls[i].q.x = 2 * box.right - futureX[i].x - 2 * balls[i].r;
+          //balls[i].q.x = 2 * box.right - futureX[i].x - 2 * balls[i].r;
           balls[i].v.x = -balls[i].v.x;
         } else if ((futureX[i].x - balls[i].r) < box.left) {
-          balls[i].q.x = 2 * box.left - futureX[i].x + 2 * balls[i].r;
+          //balls[i].q.x = 2 * box.left - futureX[i].x + 2 * balls[i].r;
           balls[i].v.x = -balls[i].v.x;
         } else {
           balls[i].q.x = futureX[i].x;
         }
         // Top and Bottom Walls: reerse y-velocity and adjust position
         if ((futureX[i].y + balls[i].r) > box.top) {
-          balls[i].q.y = 2 * box.top - futureX[i].y - 2 * balls[i].r;
+          //balls[i].q.y = 2 * box.top - futureX[i].y - 2 * balls[i].r;
           balls[i].v.y = -balls[i].v.y;
         } else if ((futureX[i].y - balls[i].r) < box.bottom) {
-          balls[i].q.y = 2 * box.bottom - futureX[i].y + 2 * balls[i].r;
+          //balls[i].q.y = 2 * box.bottom - futureX[i].y + 2 * balls[i].r;
           balls[i].v.y = -balls[i].v.y;
         } else {
           balls[i].q.y = futureX[i].y;
