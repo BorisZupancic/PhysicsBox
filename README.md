@@ -2,7 +2,7 @@
 
 A sandbox for general (2D) physics.
 
-![alt text](https://github.com/BorisZupancic/PhysicsBox/screenshots/image.PNG)
+![Game](screenshots/image.PNG)
 
 ---
 
