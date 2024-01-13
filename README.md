@@ -2,7 +2,6 @@
 
 A sandbox for general (2D) physics.
 
-![Game](res/image.PNG)
 ![Game](res/PhysicsBox.gif)
 ---
 
