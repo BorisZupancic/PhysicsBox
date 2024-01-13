@@ -1,3 +1,4 @@
+#Determine OS
 ifeq ($(OS),Windows_NT)
 	PLATFORM_OS = WINDOWS
 else
@@ -7,12 +8,17 @@ else
 	endif
 endif
 
+#Paths to Dependencies (raylib/raygui)
 RAYLIB_PATH = C:/'Program Files'/raylib
 RAYGUI_PATH = C:/'Program Files'/raygui
 
+#Include paths to raylib/raygui:
 INCLUDE_PATHS = -I. -I$(RAYGUI_PATH)/src -I$(RAYLIB_PATH)/src 
+
+#Links paths to raylib/raygui:
 LDFLAGS = -L. -L$(RAYGUI_PATH)/src  -L$(RAYLIB_PATH)/src
 
+#Link libraries:
 LDLIBS :=
 ifeq ($(PLATFORM_OS),WINDOWS)
 	LDLIBS += -lraylib -lwinmm -lgdi32 -lopengl32
@@ -22,9 +28,6 @@ ifeq ($(PLATFORM_OS), LINUX)
 	LDLIBS += -lraylib -lGL -lm -lpthread -ldl -lrt -lX11
 endif
 
-#linux:
-#	gcc -g -std=c11 -o main main.c -lraylib -lGL -lm -lpthread -ldl -lrt -lX11
-#windows: main.c
-#	gcc main.c -std=c11 -o PhysicsBox_Windows.exe -I C:/'Program Files'/raygui/src -L C:/'Program Files'/raygui/src -I C:/'Program Files'/raylib/src -L C:/'Program Files'/raylib/src -lraylib -lwinmm -lgdi32 -lopengl32
+# Compile ---------------------------
 all:
-	gcc main.c -std=c11 -o PhysicsBox_$(PLATFORM_OS) $(INCLUDE_PATHS) $(LDFLAGS) $(LDLIBS)
+	gcc main.c -std=c11 -o PhysicsBox $(INCLUDE_PATHS) $(LDFLAGS) $(LDLIBS)
