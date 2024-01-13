@@ -195,11 +195,6 @@ bool MouseInside(RectangleV2 box) {
 
 // Ball Collision stuff ---------
 
-/*
-void DrawRectangleV2(RectangleV2 rect){
-  DrawLineV(Vector2(rect.left)
-}*/
-
 //------------------------------------------------------------------------------------
 // Program main entry point
 //------------------------------------------------------------------------------------
@@ -227,7 +222,7 @@ int main(void) {
   RectangleV2 panel = ConvertRect(
       (Rectangle){boxWidth + 2 * boxGap, boxGap, panelWidth, panelHeight});
 
-  InitWindow(screenWidth, screenHeight, "Physics with Balls");
+  InitWindow(screenWidth, screenHeight, "PhysicsBox");
 
   Camera2D camera = {0};
   camera.zoom = 1.0f;
@@ -414,7 +409,6 @@ int main(void) {
         // do collision detection/response with temporary ball:
         if (drawTempBall && (Vector2DistanceSqr(futureX[i], tempBall.q) <
                              pow(balls[i].r + tempBall.r, 2))) {
-          printf("Here: i=%d \n", i);
           // balls[i].v = Vector2Scale(balls[i].v, -1);
           NormalCollision(&balls[i], &tempBall);
         }
@@ -448,6 +442,25 @@ int main(void) {
     } else {
       for (int i = 0; i < num_balls; i++) {
         balls[i].q = futureX[i];
+      }
+    }
+
+    //Worst Case: Balls overlap, must separate
+    if (particleCollisionON == 1){
+      for (int i=0; i<num_balls; i++){
+        for (int j=0; j<num_balls; j++){
+          //Check if (i,j) pair overlap
+          Vector2 deltaX = Vector2Subtract(balls[i].q, balls[j].q);
+          float dist = Vector2Length(deltaX);
+          float R = balls[i].r + balls[j].r;
+          float factor_i = (balls[i].r/R), factor_j = (balls[j].r/R);
+          Vector2 correction_i = Vector2Scale(deltaX,factor_i*(R-dist)/dist);
+          Vector2 correction_j = Vector2Scale(deltaX,factor_j*(R-dist)/dist);
+          if (j!=i &&  dist < R){
+            balls[i].q = Vector2Add(balls[i].q, correction_i);
+            balls[j].q = Vector2Subtract(balls[j].q, correction_j);
+          }
+        }
       }
     }
 
@@ -523,6 +536,9 @@ int main(void) {
                         fabs(momentum(balls, num_balls).x),
                         fabs(momentum(balls, num_balls).y)),
              visualBox.right + boxGap + 10, 30, 20, BLACK);*/
+    DrawText(TextFormat("%s%d",
+                        "# Balls: ", num_balls),
+             visualBox.right + boxGap + 10, 30, 20, RED);
 
     // Output center of mass acceleration
     Vector2 centerAccel = Vector2Zero();
@@ -537,9 +553,12 @@ int main(void) {
       centerMass = Vector2Add(centerMass,
                               Vector2Scale(balls[i].q, balls[i].m / netMass));
     }
+    /*
     DrawText(TextFormat("%s(%3.5f,%3.5f)",
                         "C.M. Accel. (Ax,Ay): ", centerAccel.x, centerAccel.y),
              visualBox.right + boxGap + 10, 30, 20, RED);
+    */
+
     DrawLine(centerMass.x / meters_per_pixel - 8,
              centerMass.y / meters_per_pixel,
              centerMass.x / meters_per_pixel + 8,
@@ -625,6 +644,9 @@ int main(void) {
         DrawCircle(balls[i].q.x / meters_per_pixel,
                    balls[i].q.y / meters_per_pixel,
                    balls[i].r / meters_per_pixel, balls[i].color);
+        DrawCircleLines(balls[i].q.x / meters_per_pixel,
+                   balls[i].q.y / meters_per_pixel,
+                   balls[i].r / meters_per_pixel, BLACK);
       }
     }
 

@@ -1,3 +1,5 @@
+ROOT_DIR = $(shell pwd)
+
 #Determine OS
 ifeq ($(OS),Windows_NT)
 	PLATFORM_OS = WINDOWS
@@ -18,6 +20,8 @@ INCLUDE_PATHS = -I. -I$(RAYGUI_PATH)/src -I$(RAYLIB_PATH)/src
 #Links paths to raylib/raygui:
 LDFLAGS = -L. -L$(RAYGUI_PATH)/src  -L$(RAYLIB_PATH)/src
 
+LDFLAGS += $(ROOT_DIR)/res/PhysicsBox.rc.data
+
 #Link libraries:
 LDLIBS :=
 ifeq ($(PLATFORM_OS),WINDOWS)
@@ -30,4 +34,7 @@ endif
 
 # Compile ---------------------------
 all:
-	gcc main.c -std=c11 -o PhysicsBox $(INCLUDE_PATHS) $(LDFLAGS) $(LDLIBS)
+	gcc main.c -std=c11 -o $(ROOT_DIR)/bin/PhysicsBox $(INCLUDE_PATHS) $(LDFLAGS) $(LDLIBS)
+
+clean:
+	rm -f $(ROOT_DIR)/bin/PhysicsBox.exe

@@ -2,8 +2,8 @@
 
 A sandbox for general (2D) physics.
 
-![Game](screenshots/image.PNG)
-
+![Game](res/image.PNG)
+![Game](res/PhysicsBox.gif)
 ---
 
 ## Dependencies
