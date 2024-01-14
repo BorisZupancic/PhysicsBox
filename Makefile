@@ -20,12 +20,13 @@ INCLUDE_PATHS = -I. -I$(RAYGUI_PATH)/src -I$(RAYLIB_PATH)/src
 #Links paths to raylib/raygui:
 LDFLAGS = -L. -L$(RAYGUI_PATH)/src  -L$(RAYLIB_PATH)/src
 
-LDFLAGS += $(ROOT_DIR)/res/PhysicsBox.rc.data
 
 #Link libraries:
 LDLIBS :=
 ifeq ($(PLATFORM_OS),WINDOWS)
 	LDLIBS += -lraylib -lwinmm -lgdi32 -lopengl32
+	
+	LDFLAGS += $(ROOT_DIR)/res/PhysicsBox.rc.data
 endif 
 
 ifeq ($(PLATFORM_OS), LINUX)
