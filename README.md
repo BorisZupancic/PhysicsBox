@@ -22,5 +22,5 @@ Building this game from source will require:
     ```
     make
     ```
-    This should compile the source code for the game, and create an executable ```PhysicsBox```.
-3. Run ```../PhysicsBox/PhysicsBox``` to open the game.
+    This should compile the source code for the game, and create an executable ```PhysicsBox``` in the ```/bin``` directory.
+3. Run ```./bin/PhysicsBox``` to open the game.

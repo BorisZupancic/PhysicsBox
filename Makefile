@@ -11,18 +11,21 @@ else
 endif
 
 #Paths to Dependencies (raylib/raygui)
-RAYLIB_PATH = C:/'Program Files'/raylib
-RAYGUI_PATH = C:/'Program Files'/raygui
+ifeq ($(PLATFORM_OS),WINDOWS)
+	RAYLIB_PATH = C:/'Program Files'/raylib
+	RAYGUI_PATH = C:/'Program Files'/raygui
+endif
 
-#Include paths to raylib/raygui:
-INCLUDE_PATHS = -I. -I$(RAYGUI_PATH)/src -I$(RAYLIB_PATH)/src 
 
-#Links paths to raylib/raygui:
-LDFLAGS = -L. -L$(RAYGUI_PATH)/src  -L$(RAYLIB_PATH)/src
+#Include paths to raylib/raygui + physics:
+INCLUDE_PATHS = -I. -I$(RAYGUI_PATH)/src -I$(RAYLIB_PATH)/src  -I$(ROOT_DIR)/lib
+
+#Links paths to raylib/raygui + physics:
+LDFLAGS = -L. -L$(RAYGUI_PATH)/src  -L$(RAYLIB_PATH)/src -L$(ROOT_DIR)/lib
 
 
 #Link libraries:
-LDLIBS :=
+LDLIBS := -l:libphysics.o
 ifeq ($(PLATFORM_OS),WINDOWS)
 	LDLIBS += -lraylib -lwinmm -lgdi32 -lopengl32
 	
@@ -34,8 +37,12 @@ ifeq ($(PLATFORM_OS), LINUX)
 endif
 
 # Compile ---------------------------
-all:
+all: libraries
 	gcc main.c -std=c11 -o $(ROOT_DIR)/bin/PhysicsBox $(INCLUDE_PATHS) $(LDFLAGS) $(LDLIBS)
 
+libraries:
+	cd $(ROOT_DIR)/lib && make
+
 clean:
-	rm -f $(ROOT_DIR)/bin/PhysicsBox.exe
+	cd $(ROOT_DIR)/lib && make clean
+	rm -f $(ROOT_DIR)/bin/PhysicsBox.exe $(ROOT_DIR)/bin/PhysicsBox
